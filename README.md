@@ -5,3 +5,5 @@ set table
 set add button
 set delete button
 set edit button
+set panel and button layout
+added savedata, deletedata and editdata from file
