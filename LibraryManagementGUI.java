@@ -1,5 +1,6 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -8,9 +9,11 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
 import java.io.*;
 import java.util.Comparator;
-import java.util.Scanner;
 import java.util.ArrayList;
 import java.util.List;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 
 interface Configuration {
     void displayInfo();
@@ -161,20 +164,6 @@ class Library {
         }
     }
 
-    // public void readData() {
-    // try {
-    // File myfile = new File("data.txt");
-    // Scanner obj = new Scanner(myfile);
-    // while (obj.hasNextLine()) {
-    // String data = obj.nextLine();
-    // System.out.println(data);
-    // }
-    // obj.close();
-    // } catch (FileNotFoundException e) {
-    // System.err.println("Error reading file.");
-    // }
-    // }
-
     public void saveData(String[] s1) {
         String name = "data.txt";
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(name, true))) {
@@ -199,17 +188,17 @@ class Library {
         } catch (IOException ex) {
             ex.printStackTrace();
         }
-       ;
+        ;
         List<String> ul = new ArrayList<>();
         for (String line : dl) {
-             boolean check=false;
-            for(String str:s1){
-                if(line.contains(str)){
-                    check=true;
+            boolean check = false;
+            for (String str : s1) {
+                if (line.contains(str)) {
+                    check = true;
                     break;
                 }
             }
-            if(!check){
+            if (!check) {
                 ul.add(line);
             }
         }
@@ -225,7 +214,8 @@ class Library {
         }
 
     }
-    public void editData(String[] s1,String[] s2){
+
+    public void editData(String[] s1, String[] s2) {
         String name = "data.txt";
         List<String> dl = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new FileReader(name))) {
@@ -236,15 +226,15 @@ class Library {
         } catch (IOException ex) {
             ex.printStackTrace();
         }
-       ;
+        ;
         List<String> ul = new ArrayList<>();
         for (String line : dl) {
-            for(int i=0;i<s1.length;i++){
-                if(line.contains(s1[i])){
-                    line=line.replace(s1[i], s2[i]);
+            for (int i = 0; i < s1.length; i++) {
+                if (line.contains(s1[i])) {
+                    line = line.replace(s1[i], s2[i]);
                 }
             }
-                ul.add(line);
+            ul.add(line);
         }
 
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(name))) {
@@ -259,6 +249,54 @@ class Library {
     }
 }
 
+class ButtonCellRenderer extends JButton implements TableCellRenderer {
+    public ButtonCellRenderer() {
+    }
+
+    public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
+            int row, int column) {
+        setText("read");
+        return this;
+    }
+}
+
+class ButtonCellEditor extends DefaultCellEditor {
+    private JButton readButton = new JButton();
+    private int popularityCount = 0;
+
+    public ButtonCellEditor() {
+        super(new JCheckBox());
+
+        readButton.addActionListener(new ActionListener() {
+            JTextArea ta = new JTextArea();
+            JDialog dialog;
+            public void actionPerformed(ActionEvent e) {
+                String name = "book.txt";
+                popularityCount++;
+                try (BufferedReader br = new BufferedReader(new FileReader(name))) {
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        ta.append(line + "\n");
+                    }
+                    JOptionPane.showMessageDialog(null, new JScrollPane(ta));
+                } 
+                catch (IOException ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(null, "Error reading the file.");
+                }
+                int x = JOptionPane.showConfirmDialog(readButton, "Do you want to exit reading book?", "Confirm Exit", JOptionPane.YES_NO_OPTION);
+                if (x == JOptionPane.YES_OPTION) {
+                    if(dialog!=null){
+                        dialog.dispose();
+                    }
+                }
+            }
+
+            
+        });
+        editorComponent = readButton;
+    }
+}
 public class LibraryManagementGUI extends JFrame {
     Library lib = new Library();
     JTextField titleF = new JTextField(50);
@@ -314,6 +352,10 @@ public class LibraryManagementGUI extends JFrame {
         });
 
         JButton addButton = new JButton("Add Item");
+        table.getColumnModel().getColumn(3).setCellRenderer(new ButtonCellRenderer());
+        table.getColumnModel().getColumn(3).setCellEditor(new ButtonCellEditor());
+       
+
         mainP.add(addButton, BorderLayout.SOUTH);
         addButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -333,6 +375,7 @@ public class LibraryManagementGUI extends JFrame {
                     lib.saveData(row);
                 }
             }
+
         });
 
         JButton deleteButton = new JButton("Delete Item");
@@ -347,7 +390,7 @@ public class LibraryManagementGUI extends JFrame {
                         String Year = tableModel.getValueAt(i, 2).toString();
                         if (Title.equals(deletedRow)) {
                             tableModel.removeRow(i);
-                            String[] row = {Title , Author ,Year};
+                            String[] row = { Title, Author, Year };
                             lib.deleteData(row);
                             break;
                         }
@@ -374,13 +417,33 @@ public class LibraryManagementGUI extends JFrame {
                     tableModel.setValueAt(newTitle, selectedIndex, 0);
                     tableModel.setValueAt(newAuthor, selectedIndex, 1);
                     tableModel.setValueAt(newYear, selectedIndex, 2);
-                    String[] s1={oldTitle,oldAuthor,oldYear};
-                    String[] s2={newTitle,newAuthor,newYear};
-                    lib.editData(s1,s2);
+                    String[] s1 = { oldTitle, oldAuthor, oldYear };
+                    String[] s2 = { newTitle, newAuthor, newYear };
+                    lib.editData(s1, s2);
                     JOptionPane.showMessageDialog(null, "Item Updated Successfully!");
                 }
             }
         });
+        JButton popularityButton = new JButton("View Popularity");
+        mainP.add(popularityButton, BorderLayout.SOUTH);
+        // popularityButton.addActionListener(new ActionListener(){
+        // public void actionPerformed(ActionEvent e){
+        // CategoryDataset dataset = createDataset();
+        // JFreeChart chart=ChartFactory.createBarChart(
+        // "Popularity Chart",
+        // "Book Title",
+        // "Popularity Count"
+        // dataset,
+        // PlotOrientation.VERTICAL,
+        // true,true,false
+        // );
+
+        // }
+
+        // private CategoryDataset createDataset() {
+        // return null;
+        // }
+        // });
 
         add(mainP);
 

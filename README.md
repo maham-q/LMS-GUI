@@ -7,3 +7,7 @@ set delete button
 set edit button
 set panel and button layout
 added savedata, deletedata and editdata from file
+color change on hover
+addition of read button in each column through button editor and renderer
+view book data through read button
+add window listener to read button
